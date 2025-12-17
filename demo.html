@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A-Grade IEC 61215 Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://html2pdf.me/download/html2pdf.bundle.min.js"></script>
+    <style>
+        :root {
+            --primary: #2180 8d;
+            --primary-hover: #1d7473;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --bg-light: #f9fafb;
+            --bg-dark: #1f2937;
+            --text-dark: #111827;
+            --text-light: #f3f4f6;
+            --border: #e5e7eb;
+            --card: #ffffff;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        body.dark-mode {
+            --text-dark: #f3f4f6;
+            --text-light: #111827;
+            --bg-light: #111827;
+            --card: #1f2937;
+            --border: #374151;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        header {
+            background: white;
+            box-shadow: var(--shadow);
+            padding: 20px 0;
+            margin-bottom: 30px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        body.dark-mode header {
+            background: var(--bg-dark);
+            border-bottom: 1px solid var(--border);
+        }
+
+        header .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .header-left p {
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(33, 128, 141, 0.2);
+        }
+
+        .btn-secondary {
+            background: var(--bg-light);
+            color: var(--text-dark);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        .toggle-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #6b7280;
+            position: relative;
+            transition: color 0.2s;
+        }
+
+        .tab.active {
+            color: var(--primary);
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--primary);
+        }
+
+        .tab:hover {
+            color: var(--text-dark);
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Grid of Cards */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: var(--shadow);
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-pass {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        body.dark-mode .badge-pass {
+            background: rgba(34, 197, 94, 0.2);
+            color: #86efac;
+        }
+
+        .card-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .card-text {
+            font-size: 13px;
+            color: #6b7280;
+            line-height: 1.5;
+        }
+
+        .card-expanded {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border);
+        }
+
+        .card-expanded h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 12px;
+            margin-bottom: 8px;
+            color: var(--text-dark);
+        }
+
+        .card-expanded p {
+            font-size: 13px;
+            color: #6b7280;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .param-list {
+            list-style: none;
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .param-list li {
+            padding: 4px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .param-list li:before {
+            content: "•";
+            position: absolute;
+            left: 0;
+        }
+
+        /* Comparison Table */
+        .table-container {
+            overflow-x: auto;
+            background: var(--card);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: var(--bg-light);
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+        tr:hover {
+            background: var(--bg-light);
+        }
+
+        .cell-green {
+            background: #dcfce7;
+            color: #166534;
+            font-weight: 600;
+        }
+
+        body.dark-mode .cell-green {
+            background: rgba(34, 197, 94, 0.15);
+            color: #86efac;
+        }
+
+        /* Compliance Checklist */
+        .checklist {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        .checklist-item:last-child {
+            border-bottom: none;
+        }
+
+        .checklist-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 12px;
+            font-size: 18px;
+        }
+
+        .checklist-name {
+            flex: 1;
+            font-weight: 500;
+        }
+
+        .checklist-status {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        body.dark-mode .checklist-status {
+            background: rgba(34, 197, 94, 0.2);
+            color: #86efac;
+        }
+
+        /* PDF Export */
+        .export-section {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .export-section h2 {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .export-section p {
+            color: #6b7280;
+            margin-bottom: 20px;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #9ca3af;
+            font-size: 12px;
+            border-top: 1px solid var(--border);
+            margin-top: 40px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--card);
+            padding: 30px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .close-btn {
+            background: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+        }
+
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tabs {
+                gap: 5px;
+            }
+
+            .tab {
+                padding: 10px 12px;
+                font-size: 12px;
+            }
+
+            header .container {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .header-right {
+                width: 100%;
+                justify-content: flex-end;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            header, .tabs, footer {
+                display: none;
+            }
+
+            .card, .table-container, .checklist {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="header-left">
+                <h1>🏢 A-GRADE ENERGY</h1>
+                <p>IEC 61215:2021 Certification Dashboard</p>
+            </div>
+            <div class="header-right">
+                <button class="btn-secondary" onclick="generatePDF()">📥 Export PDF</button>
+                <button class="toggle-btn" id="darkModeToggle" onclick="toggleDarkMode()">🌙</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab(0)">🔍 Explore Tests</button>
+            <button class="tab" onclick="switchTab(1)">📊 Comparison</button>
+            <button class="tab" onclick="switchTab(2)">✅ Compliance</button>
+            <button class="tab" onclick="switchTab(3)">📈 Summary</button>
+        </div>
+
+        <!-- Tab 1: Explore Tests -->
+        <div class="tab-content active" id="tab0">
+            <div class="grid" id="testsGrid"></div>
+        </div>
+
+        <!-- Tab 2: Comparison Table -->
+        <div class="tab-content" id="tab1">
+            <div class="table-container">
+                <table id="comparisonTable">
+                    <thead>
+                        <tr>
+                            <th>Test Name</th>
+                            <th>IEC Minimum</th>
+                            <th>A-Grade Result</th>
+                            <th>Safety Margin</th>
+                        </tr>
+                    </thead>
+                    <tbody id="comparisonBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab 3: Compliance Checklist -->
+        <div class="tab-content" id="tab2">
+            <div class="checklist" id="checklist"></div>
+        </div>
+
+        <!-- Tab 4: Summary -->
+        <div class="tab-content" id="tab3">
+            <div class="export-section">
+                <h2>📋 Report Summary</h2>
+                <p id="reportSummary"></p>
+                <button class="btn-primary" onclick="generatePDF()" style="margin-top: 20px;">📥 Download Full Report</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF Export Modal -->
+    <div class="modal" id="pdfModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>Export Options</span>
+                <button class="close-btn" onclick="document.getElementById('pdfModal').classList.remove('active')">×</button>
+            </div>
+            <label style="display: block; margin: 15px 0;">
+                <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" checked>
+                <strong>Select All Tests</strong>
+            </label>
+            <div id="testCheckboxes" style="max-height: 300px; overflow-y: auto; margin: 15px 0;"></div>
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <button class="btn-secondary" onclick="document.getElementById('pdfModal').classList.remove('active')">Cancel</button>
+                <button class="btn-primary" onclick="downloadPDF()">Generate PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>© 2025 A-Grade Energy Limited | Report ID: SHES250801586901 | All IEC 61215:2021 Tests PASSED ✅</p>
+    </footer>
+
+    <script>
+        // Data structure
+        const mqtData = {
+            "report": {
+                "id": "SHES250801586901",
+                "title": "IEC 61215:2021 Certification Report",
+                "issueDate": "2025-10-18",
+                "testingLab": "SGS-CSTC Standards Technical Services",
+                "applicant": "A-Grade Energy Limited",
+                "totalModulesTested": 47,
+                "totalTests": 11,
+                "failures": 0
+            },
+            "tests": [
+                {"id": "mqt_08", "number": 8, "name": "Outdoor Exposure Test", "category": "environmental", "icon": "☀️", "result": "PASS", "iecMin": "60 kWh/m²", "aGradeValue": "60.7 kWh/m²", "margin": "1.2%", "summary": "Real-world outdoor weathering for 28 days", "realWorldEquivalent": "Simulates 2-3 months of field exposure; validates material durability"},
+                {"id": "mqt_09", "number": 9, "name": "Hot-Spot Endurance Test", "category": "electrical", "icon": "🌡️", "result": "PASS", "iecMin": "100 h", "aGradeValue": "100+ h", "margin": "✓ Meets", "summary": "Partial shading causing localized heating", "realWorldEquivalent": "Simulates partial shading events; validates module safety"},
+                {"id": "mqt_10", "number": 10, "name": "UV Preconditioning Test", "category": "environmental", "icon": "🔬", "result": "PASS", "iecMin": "3.0 kWh/m²", "aGradeValue": "3.87 kWh/m²", "margin": "29%", "summary": "Long-term UV radiation exposure at high temperature", "realWorldEquivalent": "Equivalent to 15-20 years of natural UV exposure"},
+                {"id": "mqt_11", "number": 11, "name": "Thermal Cycling Test", "category": "environmental", "icon": "🔄", "result": "PASS", "iecMin": "50 cycles", "aGradeValue": "200 cycles", "margin": "4×", "summary": "Seasonal temperature fluctuations -40°C to +85°C", "realWorldEquivalent": "50 cycles ≈ 50+ years; 200 cycles ≈ extreme scenarios"},
+                {"id": "mqt_12", "number": 12, "name": "Humidity-Freeze Test", "category": "environmental", "icon": "❄️", "result": "PASS", "iecMin": "10 cycles", "aGradeValue": "10 cycles", "margin": "✓ Meets", "summary": "Moisture ingress combined with freeze-thaw cycling", "realWorldEquivalent": "Simulates 10-20 years in humid, freezing climate"},
+                {"id": "mqt_13", "number": 13, "name": "Damp Heat Test", "category": "environmental", "icon": "🌴", "result": "PASS", "iecMin": "1000 h", "aGradeValue": "1000 h", "margin": "✓ Meets", "summary": "Constant tropical climate conditions for 1000 hours", "realWorldEquivalent": "Equivalent to 1-2 years of tropical field exposure"},
+                {"id": "mqt_16", "number": 16, "name": "Static Mechanical Load Test", "category": "mechanical", "icon": "💪", "result": "PASS", "iecMin": "2400 Pa", "aGradeValue": "3600 Pa", "margin": "1.5×", "summary": "Wind pressure and snow load structural testing", "realWorldEquivalent": "Simulates extreme weather events (hurricanes, ice storms)"},
+                {"id": "mqt_17", "number": 17, "name": "Hail Impact Test", "category": "mechanical", "icon": "⛈️", "result": "PASS", "iecMin": "1 impact", "aGradeValue": "11 impacts", "margin": "11×", "summary": "11 ice ball impacts to validate glass durability", "realWorldEquivalent": "Simulates hailstorm impacts; validates glass survival"},
+                {"id": "mqt_18_1", "number": "18.1", "name": "Bypass Diode Thermal Test", "category": "electrical", "icon": "⚡", "result": "PASS", "iecMin": "Full test", "aGradeValue": "Tjmax=134°C", "margin": "66°C margin", "summary": "High current through bypass diode at elevated temperature", "realWorldEquivalent": "Validates bypass diode reliability during hot-spot events"},
+                {"id": "mqt_20", "number": 20, "name": "Cyclic Mechanical Load Test", "category": "mechanical", "icon": "🌊", "result": "PASS", "iecMin": "1000 cycles", "aGradeValue": "1000 cycles", "margin": "✓ Meets", "summary": "Wind buffeting with 1000 pressure cycles", "realWorldEquivalent": "Simulates cumulative wind fatigue over 1-2 decades"},
+                {"id": "mqt_21", "number": 21, "name": "Potential-Induced Degradation (PID) Test", "category": "electrical", "icon": "⚙️", "result": "PASS", "iecMin": "96 h", "aGradeValue": "96 h", "margin": "✓ Meets", "summary": "High voltage stress in humid environment for 96 hours", "realWorldEquivalent": "Validates reliability in 1000V+ systems"}
+            ]
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', init);
+
+        function init() {
+            renderTestGrid();
+            renderComparisonTable();
+            renderChecklist();
+            renderSummary();
+            setupPDFModal();
+            loadDarkMode();
+        }
+
+        // Render Test Grid (Tab 1)
+        function renderTestGrid() {
+            const grid = document.getElementById('testsGrid');
+            grid.innerHTML = mqtData.tests.map((test, idx) => `
+                <div class="card" onclick="toggleCardExpand(this, ${idx})">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-icon">${test.icon}</div>
+                            <div class="card-title">MQT ${test.number} – ${test.name}</div>
+                        </div>
+                        <span class="badge badge-pass">✓ PASS</span>
+                    </div>
+                    <p class="card-text">${test.summary}</p>
+                    <div class="card-expanded" style="display: none;">
+                        <h3>🌍 Real-World Relevance</h3>
+                        <p>${test.realWorldEquivalent}</p>
+                        <h3>📊 Key Parameters</h3>
+                        <ul class="param-list">
+                            <li><strong>IEC Minimum:</strong> ${test.iecMin}</li>
+                            <li><strong>A-Grade Value:</strong> ${test.aGradeValue}</li>
+                            <li><strong>Safety Margin:</strong> ${test.margin}</li>
+                        </ul>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Toggle card expand
+        function toggleCardExpand(card, idx) {
+            const expanded = card.querySelector('.card-expanded');
+            const isOpen = expanded.style.display !== 'none';
+            
+            // Close other expanded cards
+            document.querySelectorAll('.card-expanded').forEach(el => el.style.display = 'none');
+            
+            // Toggle current
+            expanded.style.display = isOpen ? 'none' : 'block';
+        }
+
+        // Render Comparison Table (Tab 2)
+        function renderComparisonTable() {
+            const tbody = document.getElementById('comparisonBody');
+            tbody.innerHTML = mqtData.tests.map(test => `
+                <tr>
+                    <td><strong>${test.name}</strong></td>
+                    <td>${test.iecMin}</td>
+                    <td><strong>${test.aGradeValue}</strong></td>
+                    <td class="cell-green">${test.margin}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Render Compliance Checklist (Tab 3)
+        function renderChecklist() {
+            const checklist = document.getElementById('checklist');
+            checklist.innerHTML = `
+                <h2 style="margin-bottom: 20px; font-size: 18px;">✅ Compliance Status</h2>
+                ${mqtData.tests.map(test => `
+                    <div class="checklist-item">
+                        <span class="checklist-icon">✓</span>
+                        <span class="checklist-name">MQT ${test.number} – ${test.name}</span>
+                        <span class="checklist-status">PASS</span>
+                    </div>
+                `).join('')}
+                <div style="margin-top: 20px; padding: 15px; background: #dcfce7; border-radius: 6px; text-align: center; color: #166534; font-weight: 600;">
+                    ✅ ALL 11 IEC 61215 TESTS PASSED
+                </div>
+            `;
+        }
+
+        // Render Summary (Tab 4)
+        function renderSummary() {
+            const report = mqtData.report;
+            document.getElementById('reportSummary').innerHTML = `
+                <strong>${report.title}</strong><br>
+                Report ID: ${report.id}<br>
+                Date: ${report.issueDate}<br><br>
+                <strong>Highlights:</strong><br>
+                ✓ ${report.totalModulesTested} modules tested<br>
+                ✓ All ${report.totalTests} IEC 61215 tests completed<br>
+                ✓ ${report.failures} failures<br>
+                ✓ 25-year design life certified<br>
+                ✓ Approved for global markets<br><br>
+                <span style="font-size: 12px; color: #6b7280;">Testing Lab: ${report.testingLab}</span>
+            `;
+        }
+
+        // Tab switching
+        function switchTab(tabNum) {
+            document.querySelectorAll('.tab-content').forEach((el, idx) => {
+                el.classList.toggle('active', idx === tabNum);
+            });
+            document.querySelectorAll('.tab').forEach((el, idx) => {
+                el.classList.toggle('active', idx === tabNum);
+            });
+        }
+
+        // PDF Generation
+        function generatePDF() {
+            document.getElementById('pdfModal').classList.add('active');
+        }
+
+        function setupPDFModal() {
+            const container = document.getElementById('testCheckboxes');
+            container.innerHTML = mqtData.tests.map(test => `
+                <label style="display: block; margin: 8px 0;">
+                    <input type="checkbox" class="test-checkbox" value="${test.id}" checked>
+                    MQT ${test.number} – ${test.name}
+                </label>
+            `).join('');
+        }
+
+        function toggleSelectAll() {
+            const isChecked = document.getElementById('selectAll').checked;
+            document.querySelectorAll('.test-checkbox').forEach(el => el.checked = isChecked);
+        }
+
+        function downloadPDF() {
+            const selectedTests = Array.from(document.querySelectorAll('.test-checkbox:checked'))
+                .map(el => el.value);
+
+            const report = mqtData.report;
+            const filteredTests = mqtData.tests.filter(t => selectedTests.includes(t.id));
+
+            let htmlContent = `
+                <div style="font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px;">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <h1 style="margin: 0; color: #218081;">A-GRADE ENERGY</h1>
+                        <h2 style="margin: 10px 0; font-size: 20px; color: #333;">${report.title}</h2>
+                        <p style="color: #666; margin: 5px 0;">Report ID: ${report.id}</p>
+                        <p style="color: #666; margin: 0;">Date: ${report.issueDate}</p>
+                    </div>
+
+                    <div style="background: #dcfce7; padding: 15px; border-radius: 6px; margin-bottom: 20px; text-align: center;">
+                        <p style="margin: 0; color: #166534; font-weight: bold;">✅ ALL ${filteredTests.length} SELECTED TESTS PASSED</p>
+                    </div>
+
+                    <h3 style="border-bottom: 2px solid #218081; padding-bottom: 10px; margin-top: 30px;">Test Summary</h3>
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+                        <thead>
+                            <tr style="background: #f3f4f6;">
+                                <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">Test Name</th>
+                                <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">Result</th>
+                                <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">Safety Margin</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${filteredTests.map(test => `
+                                <tr>
+                                    <td style="border: 1px solid #ddd; padding: 10px;">MQT ${test.number} – ${test.name}</td>
+                                    <td style="border: 1px solid #ddd; padding: 10px; color: #166534; font-weight: bold;">✓ PASS</td>
+                                    <td style="border: 1px solid #ddd; padding: 10px;">${test.margin}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+
+                    <h3 style="border-bottom: 2px solid #218081; padding-bottom: 10px;">Key Specifications</h3>
+                    <ul style="color: #666; line-height: 1.8;">
+                        <li>Total Modules Tested: ${report.totalModulesTested}</li>
+                        <li>Total Tests Performed: ${report.totalTests}</li>
+                        <li>Failures: ${report.failures}</li>
+                        <li>Design Life: 25 years</li>
+                        <li>Testing Lab: ${report.testingLab}</li>
+                    </ul>
+
+                    <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #999; font-size: 12px; text-align: center;">
+                        <p>© 2025 A-Grade Energy Limited | This report was generated from the IEC 61215:2021 Certification Dashboard</p>
+                    </div>
+                </div>
+            `;
+
+            const element = document.createElement('div');
+            element.innerHTML = htmlContent;
+
+            const opt = {
+                margin: 10,
+                filename: `A-Grade_IEC61215_Report_${new Date().toISOString().slice(0,10)}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+            };
+
+            html2pdf().set(opt).from(htmlContent).save();
+            document.getElementById('pdfModal').classList.remove('active');
+        }
+
+        // Dark Mode Toggle
+        function toggleDarkMode() {
+            const isDark = document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', isDark);
+            updateToggleButton();
+        }
+
+        function loadDarkMode() {
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.body.classList.add('dark-mode');
+            }
+            updateToggleButton();
+        }
+
+        function updateToggleButton() {
+            const isDark = document.body.classList.contains('dark-mode');
+            document.getElementById('darkModeToggle').textContent = isDark ? '☀️' : '🌙';
+        }
+    </script>
+</body>
+</html>
